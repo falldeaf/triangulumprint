@@ -1,0 +1,17 @@
+#gcode_log {
+    height: 400px;
+    font-size: 20px;
+    line-height:20px;
+    margin: auto;
+    overflow: auto;
+    text-align: right;
+    white-space: pre-wrap;
+}
+
+a[ng-click]{
+    cursor: pointer;
+}
+
+.progress {
+    margin-bottom: 0px;
+}

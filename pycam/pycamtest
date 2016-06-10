@@ -1,0 +1,1 @@
+python pycam ../../ngc/geo.dxf --export-gcode=geo.ngc --process-path-strategy=engrave

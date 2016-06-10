@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Falldeaf's Drawbot</title>
+
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <script src="js/angular.js"></script>
+    <script src="js/gcodevis.js"></script>
+  </head>
+  <body>
+
+    <!-- Begin page content -->
+    <div class="container" ng-app="printapp">
+      <div class="page-header">
+        <h1>Falldeaf Drawbot.</h1>
+      </div>
+
+<div class="col-lg-6" ng-controller="serialList">
+      <div class="panel panel-default">
+       <div class="panel-body">
+
+       <!-- Split button -->
+       <div class="btn-group">
+         <button id="spconnect_button" type="button" class="btn" ng-class="{true: 'btn-success', false: 'btn-danger'}[sstatus == 1]" ng-cloak>
+           {{ sstatus ? 'Connected' : 'Disconnected' }} <span class="glyphicon" ng-class="sstatus ? 'glyphicon-ok-circle' : 'glyphicon-ban-circle'" aria-hidden="true"></span>
+         </button>
+         <button type="button" class="btn dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+           <span class="caret"></span>
+           <span class="sr-only">Toggle Dropdown</span>
+         </button>
+         <ul class="dropdown-menu">
+           <li ng-repeat-start="port in ports"><a ng-click="open_s(port.name)">{{ port.name }} | {{ port.manuf }}</a></li>
+           <li ng-repeat-end role="separator" class="divider"></li>
+           <li ng-show="sstatus == 1"><a ng-click="close_s('close')">Close port</a></li>
+         </ul>
+       </div>
+
+         <p></p>
+
+         <pre id="gcode_log">
+         </pre>
+         <span class="pull-right"> Repeated >'s <span id="gcode_log_repeat" class="badge">0</span></span>
+       </div>
+
+       <div class="panel-footer">
+
+        <!-- <div class="row"> -->
+	 <!-- <div class="col-lg-6"> -->
+
+           <div class="btn-group" role="group" aria-label="...">
+             <button id="left_sb" type="button" class="btn btn-default" ng-disabled="sstatus == 0"><span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span></button>
+             <button id="right_sb" type="button" class="btn btn-default" ng-disabled="sstatus == 0"><span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span></button>
+             <button id="up_sb" type="button" class="btn btn-default" ng-disabled="sstatus == 0"><span class="glyphicon glyphicon-menu-up" aria-hidden="true"></span></button>
+             <button id="down_sb" type="button" class="btn btn-default" ng-disabled="sstatus == 0"><span class="glyphicon glyphicon-menu-down" aria-hidden="true"></span></button>
+
+               <div class="btn-group dropup" role="group">
+                 <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" ng-disabled="sstatus == 0">
+                   <span id="move_increment_display">10</span>
+                   <span class="caret"></span>
+                 </button>
+                 <ul class="dropdown-menu">
+                   <li><a id="move1_sb" href="#">Move 1</a></li>
+                   <li><a id="move10_sb" href="#">Move 10</a></li>
+                   <li><a id="move100_sb" href="#">Move 100</a></li>
+                 </ul>
+               </div>
+           </div>
+
+         <p></p>
+         <!-- </div> -->
+
+         <!-- <div class="col-lg-6"> -->
+          <div class="input-group">
+           <input id="gcodeinput" type="text" class="form-control" placeholder="gcode..." ng-disabled="sstatus == 0">
+           <span class="input-group-btn">
+             <button id="clear_gcode" class="btn btn-default" type="button"> clear <span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>
+             <button id="gcodebutton" class="btn btn-default" type="button" ng-disabled="sstatus == 0"> send <span class="glyphicon glyphicon-send" aria-hidden="true"></span></button>
+           </span>
+          </div><!-- /input-group -->
+         </div><!-- /.col-lg-6 -->
+        <!-- </div>  /.row -->
+
+       <!-- </div> -->
+      </div>
+
+</div>
+<div class="col-lg-6">
+
+<div class="panel panel-default">
+  <!-- Default panel contents -->
+  
+  <!-- <div class="panel-heading">Panel heading</div> -->
+
+  <div class="panel-body" ng-controller="printList">
+
+    <div class="col-lg-6">
+      <canvas id="gcodepreview" width="250" height="250" style="border:1px solid #d3d3d3;background:#ffffff;">
+YourbrowserdoesnotsupporttheHTMLcanvastag.</canvas>
+    </div>  
+    <div class="col-lg-6">
+      <h2><span id="current-file-name"></span></h2>
+      <h2>estimated print time <span id="print-time"></span></h2>
+
+      <div class="btn-group" role="group" aria-label="...">
+        <button type="button" class="btn btn-default" ng-show="pstatus==0 || pstatus==2"><span class="glyphicon glyphicon-play" aria-hidden="true"></span></button>
+        <button type="button" class="btn btn-default" ng-show="pstatus==1"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span></button>
+        <button type="button" class="btn btn-default"><span class="glyphicon glyphicon-stop" aria-hidden="true"></span></button>
+      </div>
+
+
+      <p></p>
+  <!--
+  </div>
+  <div class="panel-body">
+  -->
+
+      <div class="progress">
+        <div class="progress-bar progress-bar-striped" ng-class="{active: pstatus==1}" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: {{ progress }}%">
+          <span class="sr-only">{{ progress }}% Complete</span>
+        </div>
+      </div>
+
+    </div>
+    
+  </div>
+
+  <div ng-controller="fileList">
+  <!-- Table -->
+  <table class="table">
+
+  <tr>
+    <th>Filename</th>
+    <th>Size</th>
+    <th>Date</th>
+    <th>Action</th>
+  </tr>
+  <tr ng-repeat="x in names">
+    <td ng-cloak>{{ x.name  }}</td>
+    <td ng-cloak>{{ x.size }}</td>
+    <td ng-cloak>{{ x.date }}</td>
+    <td>
+
+      <div class="btn-group" role="group" aria-label="...">
+        <button type="button" ng-click="load_f(x.name);" class="btn btn-default"><span class="glyphicon glyphicon-hourglass" aria-hidden="true"></span></button>
+        <button type="button" ng-click="print_f(x.name);" class="btn btn-default"><span class="glyphicon glyphicon-print" aria-hidden="true"></span></button>
+        <button type="button" ng-click="down_f(x.name);" class="btn btn-default"><span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span></button>
+        <button type="button" ng-click="del_f(x.name);" class="btn btn-default"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>
+      </div>
+
+    </td>
+  </tr>
+
+  </table>
+  </div>
+  <form id="upload_form" method="post" action="/api/file/upload" enctype="multipart/form-data">
+   <input id="file_upload_field" class="form-control" name="gcode" type="file" /> 
+  </form>
+
+</div>
+</div>
+
+    </div>
+
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <script src="/js/socket.io.js"></script>
+    <script>
+       var app = angular.module('printapp', []);
+
+       app.controller('printList', function($scope, $http) {
+         setInterval(function() {
+
+           $http.get("/api/print/list/").then(function (response) { 
+             $scope.pstatus = response.data.pstatus; 
+             $scope.file = response.data.file; 
+             $scope.progress = response.data.progress; 
+           });
+         }, 2000);
+
+         //ng-clicks
+       });
+
+       app.controller('serialList', function($scope, $http) {
+         setInterval(function() {
+
+           $http.get("/api/serial/list/").then(function (response) { 
+             $scope.sstatus = response.data.sstatus; 
+             $scope.ports = response.data.ports; 
+           });
+         }, 2000);
+
+         $scope.open_s = function(port) {
+           callSerialAPI('conn', port);
+         }
+
+         $scope.close_s = function() {
+           callSerialAPI('close', '');
+         }
+       });
+
+       function callSerialAPI(op, port) {
+         //console.log( "api/serial/" + op + "/" + port.split("/")[port.split("/").length - 1] );
+         $.get( "api/serial/" + op + "/" + port.split("/")[port.split("/").length - 1] , function( data ) {
+           console.log( $.parseJSON( data ) );
+         });
+       }
+
+       app.controller('fileList', function($scope, $http) {
+         setInterval(function() {
+           $http.get("/api/files/list/").then(function (response) { $scope.names = response.data.files; });
+         }, 2000);
+
+         $scope.load_f = function(file) {
+	   load(file);
+         }
+
+         $scope.print_f = function(file) {
+           load(file);
+           callFileAPI('print', file);
+           //callFileAPI(
+         }
+
+         $scope.down_f = function(file) {
+           //callFileAPI('down', file);
+           window.location = 'ngc/' + file;
+         }
+
+         $scope.del_f = function(file) {
+           callFileAPI('unlink', file);
+         }
+
+       });
+
+       var gcodevis = {};
+
+       function load(file) {
+         $.get("ngc/" + file, function(response) {
+            gcodevis = new gcodeVis("gcodepreview", response);
+            gcodevis.render("515151");
+
+            $('#current-file-name').html(file);
+	    $('#print-time').html( mtms(gcodevis.ptime() * 1500) );
+         });
+       }
+
+       function mtms(millis) {
+         var minutes = Math.floor(millis / 60000);
+         var seconds = ((millis % 60000) / 1000).toFixed(0);
+         return minutes + ":" + (seconds < 10 ? '0' : '') + seconds;
+       }
+
+       function callFileAPI(op, file) {
+         $.get( "api/files/" + op + "/" + file , function( data ) {
+           console.log( $.parseJSON( data ) );
+         });
+       }
+
+       autoscroll = true;
+       var socket = io();
+
+       $('#file_upload_field').change(function() {
+         var formData = new FormData($('#upload_form')[0]);
+         console.log(new FormData($('#upload_form')[0]));
+         sendFiles(formData);
+       });
+
+       function sendFiles(formData) {
+         $.ajax({
+             url: '/api/files/upload',  //Server script to process data
+             type: 'POST',
+             xhr: function() {  // Custom XMLHttpRequest
+               var myXhr = $.ajaxSettings.xhr();
+               //if(myXhr.upload){ // Check if upload property exists
+               //  myXhr.upload.addEventListener('progress',progressHandlingFunction, false); // For handling the progress of the upload
+               //}
+             return myXhr;
+           },
+           //Ajax events
+           success: function(msg){ console.log("success: " + msg); },
+           error: function(err){ console.log(err); },
+           // Form data
+           data: formData,
+           //Options to tell jQuery not to process data or worry about content-type.
+           cache: false,
+           contentType: false,
+           processData: false
+         });
+       }
+
+       //progress bar for file uploads, do I even need it? files are so small
+       //function progressHandlingFunction(e){
+       //  if(e.lengthComputable){
+       //    $('progress').attr({value:e.loaded,max:e.total});
+       //  }
+       //}
+
+       var doc = document.documentElement;
+       doc.ondragover = function () { this.className = 'hover'; return false; };
+       doc.ondragend = function () { this.className = ''; return false; };
+       doc.ondrop = function (event) {
+         event.preventDefault && event.preventDefault();
+         this.className = '';
+ 
+         // now do something with:
+         var files = event.dataTransfer.files;
+         var formData = new FormData();
+         //for (var i = 0; i < files.length; i++) {
+         //  formData.append('file', files[i]);
+         //}
+         formData.append('gcode', files[0]);
+         sendFiles(formData);
+
+         return false;
+       };
+
+       var move_increment = 10;
+
+       $('#left_sb').click(function() {
+         wrapMoveCode('G0 X' + move_increment);
+       });
+
+       $('#right_sb').click(function() {
+         wrapMoveCode('G0 X-' + move_increment);
+       });
+
+       $('#up_sb').click(function() {
+         wrapMoveCode('G0 Y-' + move_increment);
+       });
+
+       $('#down_sb').click(function() {
+         wrapMoveCode('G0 Y' + move_increment);
+       });
+
+       $('#move1_sb').click(function(e) { 
+         e.preventDefault(); 
+         move_increment = 1;
+         $('#move_increment_display').html("1");
+       });
+
+       $('#move10_sb').click(function(e) { 
+         e.preventDefault(); 
+         move_increment = 10;
+         $('#move_increment_display').html("10");
+       });
+
+       $('#move100_sb').click(function(e) {
+         e.preventDefault(); 
+         move_increment = 100;
+         $('#move_increment_display').html("100");
+       });
+
+       $('#gcodebutton').click(function() {
+         sendGcode();
+       });
+
+       $('#gcodeinput').keypress(function (e) {
+         if (e.which == 13) {
+           sendGcode();
+           return false;
+         }
+       });
+
+       function wrapMoveCode(code) {
+         sendGcode('G91\n' + code + '\n' + 'G90');
+       }
+
+       function sendGcode(code) {
+         code = code || $('#gcodeinput').val();
+
+         appendLog( $('#gcodeinput').val() );
+         socket.emit('gcode', code);
+         $('#gcodeinput').val('');
+       }
+
+       socket.on('gcode', function(msg){
+         appendLog(msg);
+       });
+
+       var old_msg = "";
+       var repeated = 0;
+       function appendLog(msg) {
+
+         console.log("msg: " + msg);
+         if(old_msg == msg) {
+           repeated++;
+           $('#gcode_log_repeat').html(repeated);           
+         } else {
+           repeated = 0;
+           $('#gcode_log_repeat').html(repeated);           
+           $('#gcode_log').append(msg + '\n');
+           if(autoscroll == true) { 
+             var elem = document.getElementById('gcode_log');
+             elem.scrollTop = elem.scrollHeight;
+           }
+         }
+         old_msg = msg;
+       }
+    </script>
+
+  </body>
+</html>
